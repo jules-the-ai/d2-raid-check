@@ -1,4 +1,5 @@
 const BUNGIE_ROOT = "https://www.bungie.net/Platform";
+const BUNGIE_STATS_ROOT = "https://stats.bungie.net/Platform";
 const RAID_MODE = 4;
 const DUNGEON_MODE = 82;
 const DEFAULT_API_KEY = "69d09479fd7343a4bbe7da8e8ac6f537";
@@ -62,7 +63,8 @@ async function runSearch() {
 async function bungie(path, options = {}) {
   const headers = { "X-API-Key": state.apiKey, ...(options.headers || {}) };
   if (options.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
-  const response = await fetch(`${BUNGIE_ROOT}${path}`, { ...options, headers });
+  const root = path.startsWith("/Destiny2/Stats/PostGameCarnageReport/") ? BUNGIE_STATS_ROOT : BUNGIE_ROOT;
+  const response = await fetch(`${root}${path}`, { ...options, headers });
   if (!response.ok) {
     const detail = response.status === 401 || response.status === 403 ? " Check that the API key is correct and enabled for Bungie.net API use." : "";
     throw new Error(`Bungie HTTP ${response.status} for ${path}.${detail}`);
