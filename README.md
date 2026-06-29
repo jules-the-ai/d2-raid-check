@@ -4,7 +4,7 @@ A static, browser-only Destiny 2 raid and dungeon feat checker powered by the of
 
 ## What it does
 
-Enter a Bungie Name and a Bungie API key, then the app searches Destiny profiles and scans raid/dungeon activity history in the browser. For completed activities it fetches Post Game Carnage Reports (PGCRs) and detects:
+Enter a Bungie Name, then the app searches Destiny profiles and scans raid/dungeon activity history in the browser. For completed activities it fetches Post Game Carnage Reports (PGCRs) and detects:
 
 - Trio raid clears
 - Duo raid clears
@@ -16,13 +16,11 @@ Enter a Bungie Name and a Bungie API key, then the app searches Destiny profiles
 
 ## Privacy model
 
-There is no backend. The Bungie API key is stored only in the browser's `localStorage` so it can be reused on the same machine. Use the "Forget saved key" button to remove it.
-
-Because this is a browser-only app, do not hard-code a private Bungie API key in the repo. Create a Bungie app at https://www.bungie.net/7/en/Application and paste the API key into the app UI.
+There is no backend. This public GitHub Pages build includes an origin-restricted Bungie API key for `https://jules-the-ai.github.io`. If you paste an override key, that override is stored only in the browser's `localStorage` so it can be reused on the same machine. Use the "Forget saved key" button to remove the override.
 
 ## API-key testing
 
-The UI includes a "Test API key" button that checks the key against Bungie's manifest endpoint before you run a full player scan.
+The UI includes a "Test API key" button that checks the site default key or your override key against Bungie's manifest endpoint before you run a full player scan.
 
 For command-line verification without committing a secret, run:
 

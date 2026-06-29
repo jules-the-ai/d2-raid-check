@@ -18,9 +18,9 @@
       <section class="hero__content">
         <p class="eyebrow">Destiny 2 feats from official Bungie data</p>
         <h1>Check dungeon and raid feats by Bungie Name.</h1>
-        <p class="lede">Enter a Bungie Name and your Bungie API key. Everything runs in your browser: profile lookup, history scanning, PGCR fetching, and feat detection.</p>
+        <p class="lede">Enter a Bungie Name. Everything runs in your browser: profile lookup, history scanning, PGCR fetching, and feat detection.</p>
         <form id="searchForm" class="search-card">
-          <label>Bungie API key<input id="apiKey" name="apiKey" type="password" autocomplete="off" placeholder="Paste your Bungie application API key" required /></label>
+          <label>Bungie API key <span class="optional">optional override</span><input id="apiKey" name="apiKey" type="password" autocomplete="off" placeholder="Using site default key; paste a key here to override" /></label>
           <label>Bungie Name<input id="bungieName" name="bungieName" type="text" placeholder="Example: Guardian#1234" required /></label>
           <details class="advanced">
             <summary>Scan options</summary>
@@ -36,7 +36,7 @@
     </header>
     <main id="main" class="shell">
       <section class="panel status-panel" aria-live="polite">
-        <div><h2>Status</h2><p id="status">Ready. Your API key is stored only in this browser's localStorage.</p></div>
+        <div><h2>Status</h2><p id="status">Ready. The app uses the site default Bungie API key; optional overrides are stored only in this browser's localStorage.</p></div>
         <button id="clearKey" type="button" class="ghost">Forget saved key</button>
       </section>
       <section id="matches" class="matches" hidden><h2>Choose a matching Destiny profile</h2><div id="matchList" class="match-list"></div></section>

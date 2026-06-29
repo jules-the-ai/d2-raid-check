@@ -2,6 +2,8 @@ const BUNGIE_ROOT = "https://www.bungie.net/Platform";
 const RAID_MODE = 4;
 const DUNGEON_MODE = 82;
 const KEY_STORAGE = "d2-raid-check:bng-api-key";
+const DEFAULT_API_KEY = "69d09479fd7343a4bbe7da8e8ac6f537";
+const BUNGIE_CLIENT_ID = "53377";
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -17,6 +19,7 @@ init();
 
 function init() {
   els.apiKey.value = localStorage.getItem(KEY_STORAGE) || "";
+  els.apiKey.placeholder = DEFAULT_API_KEY ? "Using site default key; paste a key here to override" : "Paste your Bungie application API key";
   els.form.addEventListener("submit", async (event) => {
     event.preventDefault();
     await runSearch();
@@ -25,7 +28,7 @@ function init() {
   els.clearKey.addEventListener("click", () => {
     localStorage.removeItem(KEY_STORAGE);
     els.apiKey.value = "";
-    setStatus("Saved API key removed from this browser.");
+    setStatus(DEFAULT_API_KEY ? "Saved override removed. The site default Bungie API key will be used." : "Saved API key removed from this browser.");
   });
   els.downloadJson.addEventListener("click", () => {
     if (!state.lastResult) return;
@@ -70,9 +73,9 @@ async function runSearch() {
 }
 
 function readAndPersistApiKey() {
-  const key = els.apiKey.value.trim();
+  const key = els.apiKey.value.trim() || DEFAULT_API_KEY;
   if (!key) throw new Error("A Bungie API key is required.");
-  localStorage.setItem(KEY_STORAGE, key);
+  if (els.apiKey.value.trim()) localStorage.setItem(KEY_STORAGE, key);
   return key;
 }
 
@@ -84,7 +87,7 @@ async function testApiConnection() {
     setStatus("Testing Bungie API key against the manifest endpoint…");
     const manifest = await bungie("/Destiny2/Manifest/");
     const mobileWorld = manifest.mobileWorldContentPaths?.en || manifest.jsonWorldComponentContentPaths?.en?.DestinyActivityDefinition;
-    setStatus(`API key works. Manifest version ${manifest.version || "unknown"}; content path loaded: ${mobileWorld ? "yes" : "no"}.`);
+    setStatus(`API key works${state.apiKey === DEFAULT_API_KEY ? " using the site default" : " using your override"}. Client ID ${BUNGIE_CLIENT_ID}; manifest version ${manifest.version || "unknown"}; content path loaded: ${mobileWorld ? "yes" : "no"}.`);
   } catch (error) {
     console.error(error);
     setStatus(error.message, true);

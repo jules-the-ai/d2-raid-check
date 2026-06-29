@@ -33,6 +33,7 @@ h2, h3 { margin: 0 0 .75rem; }
 .search-card, .panel { border: 1px solid var(--line); background: var(--panel); box-shadow: 0 20px 80px rgba(0,0,0,.28); backdrop-filter: blur(18px); border-radius: 1.25rem; }
 .search-card { display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end; margin-top: 2rem; padding: 1rem; }
 label { display: grid; gap: .45rem; color: var(--muted); font-size: .9rem; font-weight: 700; }
+.optional { color: var(--accent); font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
 input { width: 100%; border: 1px solid var(--line); border-radius: .85rem; background: rgba(4, 8, 15, .72); color: var(--text); font: inherit; padding: .9rem 1rem; outline: none; }
 input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(117,230,255,.12); }
 button { border: 0; border-radius: .9rem; padding: .95rem 1.2rem; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #03101a; font-weight: 900; cursor: pointer; min-height: 48px; }
