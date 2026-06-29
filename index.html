@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>D2 Raid Check</title>
+    <meta name="description" content="Browser-only Destiny 2 raid and dungeon feat checker powered by the Bungie API." />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to results</a>
+    <header class="hero">
+      <div class="hero__bg"></div>
+      <nav class="topbar" aria-label="Primary">
+        <div class="brand"><span class="brand__mark" aria-hidden="true">◆</span><span>D2 Raid Check</span></div>
+        <a href="https://www.bungie.net/7/en/Application" target="_blank" rel="noreferrer">Get API key</a>
+      </nav>
+      <section class="hero__content">
+        <p class="eyebrow">Destiny 2 feats from official Bungie data</p>
+        <h1>Check dungeon and raid feats by Bungie Name.</h1>
+        <p class="lede">Enter a Bungie Name and your Bungie API key. Everything runs in your browser: profile lookup, history scanning, PGCR fetching, and feat detection.</p>
+        <form id="searchForm" class="search-card">
+          <label>Bungie API key<input id="apiKey" name="apiKey" type="password" autocomplete="off" placeholder="Paste your Bungie application API key" required /></label>
+          <label>Bungie Name<input id="bungieName" name="bungieName" type="text" placeholder="Example: Guardian#1234" required /></label>
+          <details class="advanced">
+            <summary>Scan options</summary>
+            <div class="advanced__grid">
+              <label>Max history pages per character/mode<input id="maxPages" type="number" min="1" max="80" value="20" /></label>
+              <label>PGCR concurrency<input id="concurrency" type="number" min="1" max="8" value="4" /></label>
+            </div>
+            <p>Bungie history is paginated. Raising the page limit finds older clears but makes more API calls.</p>
+          </details>
+          <button id="searchButton" type="submit">Search feats</button>
+        </form>
+      </section>
+    </header>
+    <main id="main" class="shell">
+      <section class="panel status-panel" aria-live="polite">
+        <div><h2>Status</h2><p id="status">Ready. Your API key is stored only in this browser's localStorage.</p></div>
+        <button id="clearKey" type="button" class="ghost">Forget saved key</button>
+      </section>
+      <section id="matches" class="matches" hidden><h2>Choose a matching Destiny profile</h2><div id="matchList" class="match-list"></div></section>
+      <section id="summary" class="summary-grid" hidden></section>
+      <section id="results" class="results" hidden>
+        <div class="results__header"><div><p class="eyebrow">Detected feats</p><h2 id="resultsTitle">Results</h2></div><button id="downloadJson" type="button" class="ghost">Download JSON</button></div>
+        <div id="featGroups" class="feat-groups"></div>
+      </section>
+      <section class="panel notes">
+        <h2>How detection works</h2>
+        <ul>
+          <li>Uses Bungie endpoints only: player search, linked profiles, character activity history, post-game carnage reports, and manifest definitions.</li>
+          <li>Full clears require Bungie's <code>activityWasStartedFromBeginning</code> flag when available.</li>
+          <li>Team size is counted from unique Destiny memberships in each raid/dungeon PGCR.</li>
+          <li>Flawless means every PGCR entry has zero deaths. Solo flawless additionally requires team size 1.</li>
+          <li>Contest clears are detected from activity/modifier definitions whose names or descriptions contain “contest”. Bungie's API may not expose older contest data consistently.</li>
+        </ul>
+      </section>
+    </main>
+    <template id="featTableTemplate">
+      <article class="panel feat-group"><h3></h3><p class="muted group-note"></p><div class="table-wrap"><table><thead><tr><th>Date</th><th>Activity</th><th>Type</th><th>Team</th><th>Duration</th><th>Deaths</th><th>PGCR</th></tr></thead><tbody></tbody></table></div></article>
+    </template>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
