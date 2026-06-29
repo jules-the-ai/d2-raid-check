@@ -1,16 +1,15 @@
 const BUNGIE_ROOT = "https://www.bungie.net/Platform";
 const RAID_MODE = 4;
 const DUNGEON_MODE = 82;
-const KEY_STORAGE = "d2-raid-check:bng-api-key";
 const DEFAULT_API_KEY = "69d09479fd7343a4bbe7da8e8ac6f537";
 const BUNGIE_CLIENT_ID = "53377";
 
 const $ = (id) => document.getElementById(id);
 const els = {
-  form: $("searchForm"), apiKey: $("apiKey"), bungieName: $("bungieName"), maxPages: $("maxPages"),
-  concurrency: $("concurrency"), status: $("status"), button: $("searchButton"), clearKey: $("clearKey"),
-  matches: $("matches"), matchList: $("matchList"), summary: $("summary"), results: $("results"),
-  resultsTitle: $("resultsTitle"), featGroups: $("featGroups"), downloadJson: $("downloadJson"), testKey: $("testKey")
+  form: $("searchForm"), bungieName: $("bungieName"), maxPages: $("maxPages"),
+  concurrency: $("concurrency"), status: $("status"), button: $("searchButton"),
+  summary: $("summary"), results: $("results"),
+  resultsTitle: $("resultsTitle"), featGroups: $("featGroups"), downloadJson: $("downloadJson")
 };
 
 let state = { apiKey: "", manifest: null, lastResult: null };
@@ -18,17 +17,9 @@ let state = { apiKey: "", manifest: null, lastResult: null };
 init();
 
 function init() {
-  els.apiKey.value = localStorage.getItem(KEY_STORAGE) || "";
-  els.apiKey.placeholder = DEFAULT_API_KEY ? "Using site default key; paste a key here to override" : "Paste your Bungie application API key";
   els.form.addEventListener("submit", async (event) => {
     event.preventDefault();
     await runSearch();
-  });
-  els.testKey.addEventListener("click", testApiConnection);
-  els.clearKey.addEventListener("click", () => {
-    localStorage.removeItem(KEY_STORAGE);
-    els.apiKey.value = "";
-    setStatus(DEFAULT_API_KEY ? "Saved override removed. The site default Bungie API key will be used." : "Saved API key removed from this browser.");
   });
   els.downloadJson.addEventListener("click", () => {
     if (!state.lastResult) return;
@@ -46,7 +37,8 @@ async function runSearch() {
   try {
     setBusy(true);
     clearResults();
-    state.apiKey = readAndPersistApiKey();
+    state.apiKey = DEFAULT_API_KEY;
+    if (!state.apiKey) throw new Error("The site is missing its Bungie API key.");
 
     const query = els.bungieName.value.trim();
     if (!query) throw new Error("Enter a Bungie Name.");
@@ -58,36 +50,9 @@ async function runSearch() {
     const profiles = await searchProfiles(query);
     if (!profiles.length) throw new Error(`No Destiny profiles found for “${query}”. Try the full Bungie Name including #code.`);
 
-    if (profiles.length === 1) {
-      await scanProfile(profiles[0]);
-    } else {
-      showMatches(profiles);
-      setStatus(`Found ${profiles.length} possible matches. Choose one to scan.`);
-    }
-  } catch (error) {
-    console.error(error);
-    setStatus(error.message, true);
-  } finally {
-    setBusy(false);
-  }
-}
-
-function readAndPersistApiKey() {
-  const key = els.apiKey.value.trim() || DEFAULT_API_KEY;
-  if (!key) throw new Error("A Bungie API key is required.");
-  if (els.apiKey.value.trim()) localStorage.setItem(KEY_STORAGE, key);
-  return key;
-}
-
-async function testApiConnection() {
-  try {
-    setBusy(true, "Testing…");
-    state.apiKey = readAndPersistApiKey();
-    state.manifest = null;
-    setStatus("Testing Bungie API key against the manifest endpoint…");
-    const manifest = await bungie("/Destiny2/Manifest/");
-    const mobileWorld = manifest.mobileWorldContentPaths?.en || manifest.jsonWorldComponentContentPaths?.en?.DestinyActivityDefinition;
-    setStatus(`API key works${state.apiKey === DEFAULT_API_KEY ? " using the site default" : " using your override"}. Client ID ${BUNGIE_CLIENT_ID}; manifest version ${manifest.version || "unknown"}; content path loaded: ${mobileWorld ? "yes" : "no"}.`);
+    const profile = await chooseBestProfile(profiles);
+    setStatus(`Using ${profile.displayName} on ${profile.platformName}${profile.isCrossSavePrimary ? " (cross-save primary)" : ""}.`);
+    await scanProfile(profile);
   } catch (error) {
     console.error(error);
     setStatus(error.message, true);
@@ -179,16 +144,18 @@ function normalizeCard(card) {
   };
 }
 
-function showMatches(profiles) {
-  els.matches.hidden = false;
-  els.matchList.replaceChildren(...profiles.map((profile) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "match-card";
-    button.innerHTML = `<strong>${escapeHtml(profile.displayName)}</strong><span>${profile.platformName}${profile.isCrossSavePrimary ? " · cross-save primary" : ""}</span>`;
-    button.addEventListener("click", () => scanProfile(profile).catch((e) => setStatus(e.message, true)).finally(() => setBusy(false)));
-    return button;
-  }));
+async function chooseBestProfile(profiles) {
+  for (const profile of profiles) {
+    try {
+      const linked = await bungie(`/Destiny2/${profile.membershipType}/Profile/${profile.membershipId}/LinkedProfiles/?getAllMemberships=true`);
+      const linkedProfiles = (linked.profiles || []).map(normalizeCard);
+      const crossSave = linkedProfiles.find((p) => p.isCrossSavePrimary || Number(p.raw?.crossSaveOverride || 0) === Number(p.membershipType));
+      if (crossSave) return crossSave;
+    } catch (error) {
+      console.warn("Linked profile lookup failed while choosing profile", profile, error);
+    }
+  }
+  return profiles.find((p) => p.isCrossSavePrimary) || profiles[0];
 }
 
 async function scanProfile(profile) {
@@ -315,10 +282,10 @@ function categorizeFeats(rows) {
   return {
     soloDungeonFlawless: rows.filter((r) => r.mode === "Dungeon" && r.teamSize === 1 && r.flawless && full(r)).sort(byDate),
     soloRaidFlawless: rows.filter((r) => r.mode === "Raid" && r.teamSize === 1 && r.flawless && full(r)).sort(byDate),
-    flawlessRaids: rows.filter((r) => r.mode === "Raid" && r.flawless && full(r)).sort(byDate),
-    trioRaids: rows.filter((r) => r.mode === "Raid" && r.teamSize === 3 && full(r)).sort(byDate),
-    duoRaids: rows.filter((r) => r.mode === "Raid" && r.teamSize === 2 && full(r)).sort(byDate),
-    soloRaids: rows.filter((r) => r.mode === "Raid" && r.teamSize === 1 && full(r)).sort(byDate),
+    flawlessRaids: rows.filter((r) => r.mode === "Raid" && r.flawless).sort(byDate),
+    trioRaids: rows.filter((r) => r.mode === "Raid" && r.teamSize === 3).sort(byDate),
+    duoRaids: rows.filter((r) => r.mode === "Raid" && r.teamSize === 2).sort(byDate),
+    soloRaids: rows.filter((r) => r.mode === "Raid" && r.teamSize === 1).sort(byDate),
     contestClears: rows.filter((r) => r.contest).sort(byDate)
   };
 }
@@ -333,9 +300,9 @@ function renderResults(profile, feats, analyzed) {
     ["Solo flawless dungeons", "Completed from the beginning with one player and zero deaths.", feats.soloDungeonFlawless],
     ["Solo flawless raids", "Completed from the beginning with one player and zero deaths.", feats.soloRaidFlawless],
     ["Flawless raids", "Completed raid PGCRs where every listed player had zero deaths.", feats.flawlessRaids],
-    ["Trio raid clears", "Completed full raid clears with three unique players in the PGCR.", feats.trioRaids],
-    ["Duo raid clears", "Completed full raid clears with two unique players in the PGCR.", feats.duoRaids],
-    ["Solo raid clears", "Completed full raid clears with one unique player in the PGCR.", feats.soloRaids],
+    ["Trio raid clears", "Completed raid clears with three unique players in the PGCR.", feats.trioRaids],
+    ["Duo raid clears", "Completed raid clears with two unique players in the PGCR.", feats.duoRaids],
+    ["Solo raid clears", "Completed raid clears with one unique player in the PGCR.", feats.soloRaids],
     ["Contest mode clears", "Completed activities with contest detected from activity/modifier definitions.", feats.contestClears]
   ];
   els.featGroups.replaceChildren(...groups.map(([title, note, rows]) => renderGroup(title, note, rows)));
@@ -391,9 +358,8 @@ function formatDuration(seconds) {
 }
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c]); }
 function setStatus(message, isError = false) { els.status.textContent = message; els.status.style.color = isError ? "var(--bad)" : ""; }
-function setBusy(busy, label = "Working…") { els.button.disabled = busy; els.testKey.disabled = busy; els.button.textContent = busy ? label : "Search feats"; }
-function clearResults(hideMatches = true) {
-  if (hideMatches) els.matches.hidden = true;
+function setBusy(busy, label = "Working…") { els.button.disabled = busy; els.button.textContent = busy ? label : "Search feats"; }
+function clearResults() {
   els.summary.hidden = true; els.summary.innerHTML = "";
   els.results.hidden = true; els.featGroups.innerHTML = "";
 }

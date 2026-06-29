@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check app.js && node --check scripts/smoke-test.mjs",
-    "smoke:bungie": "node scripts/smoke-test.mjs"
+    "check": "node --check app.js && node --check scripts/smoke-test.mjs && node --check scripts/regression-cheat.mjs",
+    "smoke:bungie": "node scripts/smoke-test.mjs",
+    "regression:cheat": "node scripts/regression-cheat.mjs"
   }
 }

@@ -18,28 +18,26 @@
       <section class="hero__content">
         <p class="eyebrow">Destiny 2 feats from official Bungie data</p>
         <h1>Check dungeon and raid feats by Bungie Name.</h1>
-        <p class="lede">Enter a Bungie Name. Everything runs in your browser: profile lookup, history scanning, PGCR fetching, and feat detection.</p>
+        <p class="lede">Enter a Bungie Name. The app automatically uses the cross-save profile when Bungie returns multiple memberships, then scans raid and dungeon PGCRs in your browser.</p>
         <form id="searchForm" class="search-card">
-          <label>Bungie API key <span class="optional">optional override</span><input id="apiKey" name="apiKey" type="password" autocomplete="off" placeholder="Using site default key; paste a key here to override" /></label>
-          <label>Bungie Name<input id="bungieName" name="bungieName" type="text" placeholder="Example: Guardian#1234" required /></label>
+          <label>Bungie Name<input id="bungieName" name="bungieName" type="text" placeholder="Example: Cheat#7299" required /></label>
           <details class="advanced">
             <summary>Scan options</summary>
             <div class="advanced__grid">
-              <label>Max history pages per character/mode<input id="maxPages" type="number" min="1" max="80" value="20" /></label>
+              <label>Max history pages per character/mode<input id="maxPages" type="number" min="1" max="80" value="3" /></label>
               <label>PGCR concurrency<input id="concurrency" type="number" min="1" max="8" value="4" /></label>
             </div>
-            <p>Bungie history is paginated. Raising the page limit finds older clears but makes more API calls.</p>
+            <p>Bungie history is paginated. The default finds recent feats quickly; raise the page limit to search older clears at the cost of more API calls.</p>
           </details>
-          <div class="button-row"><button id="testKey" type="button" class="ghost">Test API key</button><button id="searchButton" type="submit">Search feats</button></div>
+          <div class="button-row"><button id="searchButton" type="submit">Search feats</button></div>
         </form>
       </section>
     </header>
     <main id="main" class="shell">
       <section class="panel status-panel" aria-live="polite">
-        <div><h2>Status</h2><p id="status">Ready. The app uses the site default Bungie API key; optional overrides are stored only in this browser's localStorage.</p></div>
-        <button id="clearKey" type="button" class="ghost">Forget saved key</button>
+        <div><h2>Status</h2><p id="status">Ready. Enter a Bungie Name to search with the app's Bungie API key.</p></div>
       </section>
-      <section id="matches" class="matches" hidden><h2>Choose a matching Destiny profile</h2><div id="matchList" class="match-list"></div></section>
+      
       <section id="summary" class="summary-grid" hidden></section>
       <section id="results" class="results" hidden>
         <div class="results__header"><div><p class="eyebrow">Detected feats</p><h2 id="resultsTitle">Results</h2></div><button id="downloadJson" type="button" class="ghost">Download JSON</button></div>
@@ -49,7 +47,7 @@
         <h2>How detection works</h2>
         <ul>
           <li>Uses Bungie endpoints only: player search, linked profiles, character activity history, post-game carnage reports, and manifest definitions.</li>
-          <li>Full clears require Bungie's <code>activityWasStartedFromBeginning</code> flag when available.</li>
+          <li>Solo flawless full clears require Bungie's <code>activityWasStartedFromBeginning</code> flag when available; low-man raid clears are shown for any completed PGCR.</li>
           <li>Team size is counted from unique Destiny memberships in each raid/dungeon PGCR.</li>
           <li>Flawless means every PGCR entry has zero deaths. Solo flawless additionally requires team size 1.</li>
           <li>Contest clears are detected from activity/modifier definitions whose names or descriptions contain “contest”. Bungie's API may not expose older contest data consistently.</li>

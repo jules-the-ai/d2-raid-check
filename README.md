@@ -16,20 +16,18 @@ Enter a Bungie Name, then the app searches Destiny profiles and scans raid/dunge
 
 ## Privacy model
 
-There is no backend. This public GitHub Pages build includes an origin-restricted Bungie API key for `https://jules-the-ai.github.io`. If you paste an override key, that override is stored only in the browser's `localStorage` so it can be reused on the same machine. Use the "Forget saved key" button to remove the override.
+There is no backend. This public GitHub Pages build includes an origin-restricted Bungie API key for `https://jules-the-ai.github.io`, and users only enter a Bungie Name. No user-provided API key is stored.
 
 ## API-key testing
 
-The UI includes a "Test API key" button that checks the site default key or your override key against Bungie's manifest endpoint before you run a full player scan.
-
-For command-line verification without committing a secret, run:
+For command-line verification, run:
 
 ```bash
 BUNGIE_API_KEY=your_key npm run smoke:bungie
 BUNGIE_API_KEY=your_key BUNGIE_NAME="Guardian#1234" npm run smoke:bungie
 ```
 
-Keep keys in your shell or an ignored `.env.local` file only. Do not commit Bungie API keys.
+Keep keys in your shell or an ignored `.env.local` file for CLI testing.
 
 ## Local development
 
@@ -54,8 +52,8 @@ Then open http://127.0.0.1:8088/.
 
 ## Detection notes and limitations
 
-- Full clears use Bungie's `activityWasStartedFromBeginning` PGCR flag when that flag is present. If Bungie omits the flag for an older report, the app keeps the clear rather than silently hiding it.
+- Low-man raid clears are counted from any completed PGCR with the matching team size. Solo flawless full clears still require Bungie's `activityWasStartedFromBeginning` PGCR flag when that flag is present.
 - Fireteam size is the number of unique Destiny memberships listed in the PGCR.
 - Flawless means every player entry in the PGCR has zero deaths.
 - Contest mode is detected by looking for the word `contest` in loaded activity/modifier definitions. Bungie does not expose every historical contest state consistently, so contest results should be treated as best-effort.
-- History scanning is paginated; increase "Max history pages" in the UI to search older clears at the cost of more API calls.
+- History scanning is paginated; the UI defaults to 3 pages per character/mode for speed. Increase "Max history pages" to search older clears at the cost of more API calls.
