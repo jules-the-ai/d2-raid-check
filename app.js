@@ -8,7 +8,7 @@ const els = {
   form: $("searchForm"), apiKey: $("apiKey"), bungieName: $("bungieName"), maxPages: $("maxPages"),
   concurrency: $("concurrency"), status: $("status"), button: $("searchButton"), clearKey: $("clearKey"),
   matches: $("matches"), matchList: $("matchList"), summary: $("summary"), results: $("results"),
-  resultsTitle: $("resultsTitle"), featGroups: $("featGroups"), downloadJson: $("downloadJson")
+  resultsTitle: $("resultsTitle"), featGroups: $("featGroups"), downloadJson: $("downloadJson"), testKey: $("testKey")
 };
 
 let state = { apiKey: "", manifest: null, lastResult: null };
@@ -21,6 +21,7 @@ function init() {
     event.preventDefault();
     await runSearch();
   });
+  els.testKey.addEventListener("click", testApiConnection);
   els.clearKey.addEventListener("click", () => {
     localStorage.removeItem(KEY_STORAGE);
     els.apiKey.value = "";
@@ -42,9 +43,7 @@ async function runSearch() {
   try {
     setBusy(true);
     clearResults();
-    state.apiKey = els.apiKey.value.trim();
-    if (!state.apiKey) throw new Error("A Bungie API key is required.");
-    localStorage.setItem(KEY_STORAGE, state.apiKey);
+    state.apiKey = readAndPersistApiKey();
 
     const query = els.bungieName.value.trim();
     if (!query) throw new Error("Enter a Bungie Name.");
@@ -70,11 +69,38 @@ async function runSearch() {
   }
 }
 
+function readAndPersistApiKey() {
+  const key = els.apiKey.value.trim();
+  if (!key) throw new Error("A Bungie API key is required.");
+  localStorage.setItem(KEY_STORAGE, key);
+  return key;
+}
+
+async function testApiConnection() {
+  try {
+    setBusy(true, "Testing…");
+    state.apiKey = readAndPersistApiKey();
+    state.manifest = null;
+    setStatus("Testing Bungie API key against the manifest endpoint…");
+    const manifest = await bungie("/Destiny2/Manifest/");
+    const mobileWorld = manifest.mobileWorldContentPaths?.en || manifest.jsonWorldComponentContentPaths?.en?.DestinyActivityDefinition;
+    setStatus(`API key works. Manifest version ${manifest.version || "unknown"}; content path loaded: ${mobileWorld ? "yes" : "no"}.`);
+  } catch (error) {
+    console.error(error);
+    setStatus(error.message, true);
+  } finally {
+    setBusy(false);
+  }
+}
+
 async function bungie(path, options = {}) {
   const headers = { "X-API-Key": state.apiKey, ...(options.headers || {}) };
   if (options.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
   const response = await fetch(`${BUNGIE_ROOT}${path}`, { ...options, headers });
-  if (!response.ok) throw new Error(`Bungie HTTP ${response.status} for ${path}`);
+  if (!response.ok) {
+    const detail = response.status === 401 || response.status === 403 ? " Check that the API key is correct and enabled for Bungie.net API use." : "";
+    throw new Error(`Bungie HTTP ${response.status} for ${path}.${detail}`);
+  }
   const json = await response.json();
   if (json.ErrorCode && json.ErrorCode !== 1) throw new Error(`${json.Message || "Bungie API error"} (${json.ErrorStatus || json.ErrorCode})`);
   return json.Response;
@@ -362,7 +388,7 @@ function formatDuration(seconds) {
 }
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c]); }
 function setStatus(message, isError = false) { els.status.textContent = message; els.status.style.color = isError ? "var(--bad)" : ""; }
-function setBusy(busy) { els.button.disabled = busy; els.button.textContent = busy ? "Working…" : "Search feats"; }
+function setBusy(busy, label = "Working…") { els.button.disabled = busy; els.testKey.disabled = busy; els.button.textContent = busy ? label : "Search feats"; }
 function clearResults(hideMatches = true) {
   if (hideMatches) els.matches.hidden = true;
   els.summary.hidden = true; els.summary.innerHTML = "";

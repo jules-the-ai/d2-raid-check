@@ -20,6 +20,19 @@ There is no backend. The Bungie API key is stored only in the browser's `localSt
 
 Because this is a browser-only app, do not hard-code a private Bungie API key in the repo. Create a Bungie app at https://www.bungie.net/7/en/Application and paste the API key into the app UI.
 
+## API-key testing
+
+The UI includes a "Test API key" button that checks the key against Bungie's manifest endpoint before you run a full player scan.
+
+For command-line verification without committing a secret, run:
+
+```bash
+BUNGIE_API_KEY=your_key npm run smoke:bungie
+BUNGIE_API_KEY=your_key BUNGIE_NAME="Guardian#1234" npm run smoke:bungie
+```
+
+Keep keys in your shell or an ignored `.env.local` file only. Do not commit Bungie API keys.
+
 ## Local development
 
 Any static file server works:
