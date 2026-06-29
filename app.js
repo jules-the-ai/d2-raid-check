@@ -43,9 +43,7 @@ async function runSearch() {
     const query = els.bungieName.value.trim();
     if (!query) throw new Error("Enter a Bungie Name.");
 
-    setStatus("Loading Bungie manifest definitions…");
-    state.manifest = await loadManifest();
-
+    state.manifest = null;
     setStatus(`Searching for ${query}…`);
     const profiles = await searchProfiles(query);
     if (!profiles.length) throw new Error(`No Destiny profiles found for “${query}”. Try the full Bungie Name including #code.`);

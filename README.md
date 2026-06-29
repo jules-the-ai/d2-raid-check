@@ -55,5 +55,5 @@ Then open http://127.0.0.1:8088/.
 - Low-man raid clears are counted from any completed PGCR with the matching team size. Solo flawless full clears still require Bungie's `activityWasStartedFromBeginning` PGCR flag when that flag is present.
 - Fireteam size is the number of unique Destiny memberships listed in the PGCR.
 - Flawless means every player entry in the PGCR has zero deaths.
-- Contest mode is detected by looking for the word `contest` in loaded activity/modifier definitions. Bungie does not expose every historical contest state consistently, so contest results should be treated as best-effort.
+- Contest mode detection is best-effort. The app prioritizes fast raid/dungeon feat scans and does not block the initial search on Bungie's large manifest files.
 - History scanning is paginated; the UI defaults to 3 pages per character/mode for speed. Increase "Max history pages" to search older clears at the cost of more API calls.
