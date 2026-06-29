@@ -159,7 +159,6 @@ async function chooseBestProfile(profiles) {
 async function scanProfile(profile) {
   setBusy(true);
   clearResults(false);
-  els.matches.hidden = true;
   setStatus(`Loading characters for ${profile.displayName}…`);
   const selected = await resolveLinkedProfile(profile);
   const profileData = await bungie(`/Destiny2/${selected.membershipType}/Profile/${selected.membershipId}/?components=200`);
