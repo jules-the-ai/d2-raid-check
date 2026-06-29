@@ -385,6 +385,13 @@ function modifierDefinition(hash) { return state.manifest?.DestinyActivityModifi
 function modifierNames(report) {
   return (report.selectedSkullHashes || []).map((h) => modifierDefinition(h)?.displayProperties).filter(Boolean).map((d) => `${d.name || ""} ${d.description || ""}`.trim()).filter(Boolean);
 }
+function contestEventForReport(report) {
+  const details = report.activityDetails || {};
+  const hash = String(details.directorActivityHash || details.referenceId || "");
+  const time = Date.parse(report.period || "");
+  if (!Number.isFinite(time)) return null;
+  return CONTEST_EVENTS.find((event) => time >= event.startMs && time <= event.endMs && event.hashSet.has(hash)) || null;
+}
 function isContest(report, activity, modifierText) {
   const haystack = [activity?.displayProperties?.name, activity?.displayProperties?.description, modifierText].filter(Boolean).join(" ").toLowerCase();
   return /\bcontest\b/.test(haystack);
