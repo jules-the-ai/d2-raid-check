@@ -50,7 +50,7 @@
           <li>Solo flawless full clears require Bungie's <code>activityWasStartedFromBeginning</code> flag when available; low-man raid clears are shown for any completed PGCR.</li>
           <li>Team size is counted from unique Destiny memberships in each raid/dungeon PGCR.</li>
           <li>Flawless means every PGCR entry has zero deaths. Solo flawless additionally requires team size 1.</li>
-          <li>Contest clear detection is best-effort and depends on Bungie metadata availability; raid/dungeon feat scanning does not require loading the large manifest first.</li>
+          <li>Contest clear detection checks a built-in list of contest raid/dungeon activity hashes and launch-window dates, so older contest clears can be found without fetching PGCRs for every historical clear first.</li>
         </ul>
       </section>
     </main>

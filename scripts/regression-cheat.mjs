@@ -41,16 +41,20 @@ for (const ch of chars) {
   }
 }
 const unique = [...new Map(activities.filter((a) => a.values?.completed?.basic?.value === 1).map((a) => [a.activityDetails.instanceId, a])).values()];
-let trioRaids = 0, flawlessRaids = 0;
+let trioRaids = 0, flawlessRaids = 0, contestClears = 0;
+const contestHashes = new Set(["2586252122", "3896382790", "1754635208"]);
 for (const a of unique.slice(0, 220)) {
   const report = await api(`/Destiny2/Stats/PostGameCarnageReport/${a.activityDetails.instanceId}/`);
   if (!(a.activityDetails.modes || []).includes(4)) continue;
   const team = new Set(report.entries.map((e) => String(e.player?.destinyUserInfo?.membershipId)).filter(Boolean)).size;
   const flawless = report.entries.length > 0 && report.entries.every((e) => Number(e.values?.deaths?.basic?.value || 0) === 0);
+  const time = Date.parse(report.period || "");
+  const hash = String(report.activityDetails?.directorActivityHash || report.activityDetails?.referenceId || "");
   if (team === 3) trioRaids += 1;
   if (flawless) flawlessRaids += 1;
+  if (contestHashes.has(hash) && time >= Date.parse("2025-07-19T16:00:00Z") && time <= Date.parse("2025-09-30T17:00:00Z")) contestClears += 1;
 }
-if (unique.length < 50 || trioRaids < 1 || flawlessRaids < 1) {
-  throw new Error(`Expected visible clears for Cheat#7299; got unique=${unique.length}, trio=${trioRaids}, flawless=${flawlessRaids}`);
+if (unique.length < 50 || trioRaids < 1 || flawlessRaids < 1 || contestClears < 1) {
+  throw new Error(`Expected visible clears for Cheat#7299; got unique=${unique.length}, trio=${trioRaids}, flawless=${flawlessRaids}, contest=${contestClears}`);
 }
-console.log(JSON.stringify({ selected, characters: chars.length, completedRaidDungeonActivities: unique.length, trioRaids, flawlessRaids }, null, 2));
+console.log(JSON.stringify({ selected, characters: chars.length, completedRaidDungeonActivities: unique.length, trioRaids, flawlessRaids, contestClears }, null, 2));

@@ -5,6 +5,21 @@ const DUNGEON_MODE = 82;
 const DEFAULT_API_KEY = "69d09479fd7343a4bbe7da8e8ac6f537";
 const BUNGIE_CLIENT_ID = "53377";
 
+const CONTEST_EVENTS = [
+  { name: "The Desert Perpetual", kind: "Raid", start: "2025-09-27T16:00:00Z", end: "2025-09-30T17:00:00Z", hashes: [2586252122, 3896382790] },
+  { name: "Equilibrium", kind: "Dungeon", start: "2025-07-19T16:00:00Z", end: "2025-07-22T17:00:00Z", hashes: [1754635208] },
+  { name: "Sundered Doctrine", kind: "Dungeon", start: "2025-02-07T17:00:00Z", end: "2025-02-10T17:00:00Z", hashes: [247869137, 3834447244] },
+  { name: "Vesper's Host", kind: "Dungeon", start: "2024-10-11T17:00:00Z", end: "2024-10-14T17:00:00Z", hashes: [1915770060, 3492566689, 300092127] },
+  { name: "Salvation's Edge", kind: "Raid", start: "2024-06-07T17:00:00Z", end: "2024-06-10T17:00:00Z", hashes: [2192826039, 940375169, 1541433876] },
+  { name: "Crota's End", kind: "Raid", start: "2023-09-01T17:00:00Z", end: "2023-09-03T17:00:00Z", hashes: [4179289725, 156253568, 107319834, 1566480315] },
+  { name: "Root of Nightmares", kind: "Raid", start: "2023-03-10T17:00:00Z", end: "2023-03-12T17:00:00Z", hashes: [2381413764] },
+  { name: "King's Fall", kind: "Raid", start: "2022-08-26T17:00:00Z", end: "2022-08-28T17:00:00Z", hashes: [2897223272, 1374392663] },
+  { name: "Vow of the Disciple", kind: "Raid", start: "2022-03-05T18:00:00Z", end: "2022-03-07T18:00:00Z", hashes: [4156879541, 2906950631, 1441982566] },
+  { name: "Vault of Glass", kind: "Raid", start: "2021-05-22T17:00:00Z", end: "2021-05-24T17:00:00Z", hashes: [3711931140, 1485585878, 3881495763] }
+].map((event) => ({ ...event, hashSet: new Set(event.hashes.map(String)), startMs: Date.parse(event.start), endMs: Date.parse(event.end) }));
+const EARLIEST_CONTEST_START_MS = Math.min(...CONTEST_EVENTS.map((event) => event.startMs));
+
+
 const $ = (id) => document.getElementById(id);
 const els = {
   form: $("searchForm"), bungieName: $("bungieName"), maxPages: $("maxPages"),
@@ -171,9 +186,10 @@ async function scanProfile(profile) {
   const concurrency = clamp(Number(els.concurrency.value) || 4, 1, 8);
   setStatus(`Scanning ${characterIds.length} characters (${maxPages} pages per character/mode max)…`);
   const activities = await collectActivities(selected, characterIds, maxPages);
-  const completed = activities.filter((a) => statValue(a.values?.completed) === 1);
+  const contestActivities = await collectContestActivities(selected, characterIds, maxPages);
+  const completed = [...activities, ...contestActivities].filter((a) => statValue(a.values?.completed) === 1);
   const unique = dedupeActivities(completed);
-  setStatus(`Found ${unique.length} completed raid/dungeon activities. Fetching PGCRs…`);
+  setStatus(`Found ${unique.length} completed raid/dungeon activities, including targeted contest windows. Fetching PGCRs…`);
   const reports = await fetchReports(unique, concurrency);
   const analyzed = reports.map((report) => analyzeReport(report, selected)).filter(Boolean);
   const feats = categorizeFeats(analyzed);
@@ -209,6 +225,33 @@ async function collectActivities(profile, characterIds, maxPages) {
     }
   }
   return rows;
+}
+
+async function collectContestActivities(profile, characterIds, normalMaxPages) {
+  const rows = [];
+  const maxContestPages = Math.max(normalMaxPages, 80);
+  for (const characterId of characterIds) {
+    for (const mode of [RAID_MODE, DUNGEON_MODE]) {
+      for (let page = 0; page < maxContestPages; page++) {
+        setStatus(`Targeted contest scan: ${mode === RAID_MODE ? "raid" : "dungeon"} history, character ${characterIds.indexOf(characterId) + 1}/${characterIds.length}, page ${page + 1}/${maxContestPages}…`);
+        const data = await bungie(`/Destiny2/${profile.membershipType}/Account/${profile.membershipId}/Character/${characterId}/Stats/Activities/?mode=${mode}&count=250&page=${page}`);
+        const acts = data.activities || [];
+        rows.push(...acts.filter(activityMatchesContestWindow));
+        if (acts.length < 250) break;
+        const lastTime = Date.parse(acts.at(-1)?.period || "");
+        if (Number.isFinite(lastTime) && lastTime < EARLIEST_CONTEST_START_MS) break;
+      }
+    }
+  }
+  return rows;
+}
+
+function activityMatchesContestWindow(activity) {
+  const details = activity.activityDetails || {};
+  const hash = String(details.directorActivityHash || details.referenceId || "");
+  const time = Date.parse(activity.period || "");
+  if (!Number.isFinite(time)) return false;
+  return CONTEST_EVENTS.some((event) => time >= event.startMs && time <= event.endMs && event.hashSet.has(hash));
 }
 
 function dedupeActivities(activities) {
@@ -269,7 +312,8 @@ function analyzeReport(report, profile) {
     playerDeaths,
     teamDeaths,
     durationSeconds: duration,
-    contest: isContest(report, activity, modifierText),
+    contest: Boolean(contestEventForReport(report)) || isContest(report, activity, modifierText),
+    contestEvent: contestEventForReport(report)?.name || "",
     modifiers: modifierText,
     pgcrUrl: `https://www.bungie.net/7/en/PGCR/${details.instanceId}`
   };
@@ -302,7 +346,7 @@ function renderResults(profile, feats, analyzed) {
     ["Trio raid clears", "Completed raid clears with three unique players in the PGCR.", feats.trioRaids],
     ["Duo raid clears", "Completed raid clears with two unique players in the PGCR.", feats.duoRaids],
     ["Solo raid clears", "Completed raid clears with one unique player in the PGCR.", feats.soloRaids],
-    ["Contest mode clears", "Completed activities with contest detected from activity/modifier definitions.", feats.contestClears]
+    ["Contest mode clears", "Completed activities found by known contest raid/dungeon hashes and launch-window dates, plus Bungie contest metadata when available.", feats.contestClears]
   ];
   els.featGroups.replaceChildren(...groups.map(([title, note, rows]) => renderGroup(title, note, rows)));
 }
@@ -318,7 +362,7 @@ function renderGroup(title, note, rows) {
   }
   tbody.replaceChildren(...rows.map((r) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${formatDate(r.date)}</td><td>${escapeHtml(r.activityName)}${r.contest ? " <span class='badge'>Contest</span>" : ""}</td><td>${r.mode}</td><td>${r.teamSize}</td><td>${formatDuration(r.durationSeconds)}</td><td>${r.playerDeaths} / ${r.teamDeaths}</td><td><a href="${r.pgcrUrl}" target="_blank" rel="noreferrer">PGCR</a></td>`;
+    tr.innerHTML = `<td>${formatDate(r.date)}</td><td>${escapeHtml(r.contestEvent || r.activityName)}${r.contest ? " <span class='badge'>Contest</span>" : ""}</td><td>${r.mode}</td><td>${r.teamSize}</td><td>${formatDuration(r.durationSeconds)}</td><td>${r.playerDeaths} / ${r.teamDeaths}</td><td><a href="${r.pgcrUrl}" target="_blank" rel="noreferrer">PGCR</a></td>`;
     return tr;
   }));
   return node;
